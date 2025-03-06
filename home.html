@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Women's Health Assessment</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <style>
+        body { padding: 20px; }
+        .result-section { margin-top: 20px; display: none; }
+        .recommendation-list { margin-top: 15px; }
+        .chat-section { margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Women's Health Assessment</h1>
+        
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Health Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="predictionForm">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="age" class="form-label">Age (18-60):</label>
+                                    <input type="number" class="form-control" id="age" name="age" min="18" max="60" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="weight" class="form-label">Weight (kg):</label>
+                                    <input type="number" class="form-control" id="weight" name="weight" min="40" max="150" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="bmi" class="form-label">BMI (15-40):</label>
+                                    <input type="number" class="form-control" id="bmi" name="bmi" min="15" max="40" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="period_regularity" class="form-label">Period Regularity:</label>
+                                    <select class="form-select" id="period_regularity" name="period_regularity" required>
+                                        <option value="regular">Regular</option>
+                                        <option value="irregular">Irregular</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="cycle_length" class="form-label">Cycle Length (days):</label>
+                                    <input type="number" class="form-control" id="cycle_length" name="cycle_length" min="15" max="45" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="flow_intensity" class="form-label">Flow Intensity:</label>
+                                    <select class="form-select" id="flow_intensity" name="flow_intensity" required>
+                                        <option value="Very Light">Very Light</option>
+                                        <option value="Light">Light</option>
+                                        <option value="Normal">Normal</option>
+                                        <option value="Heavy">Heavy</option>
+                                        <option value="Very Heavy">Very Heavy</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Assess Health Risk</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div class="card mt-4 result-section" id="resultSection">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0">Your Assessment Results</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="alert" id="riskAlert">
+                                    <h5>Risk Level: <span id="healthRisk"></span></h5>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert" id="diseaseAlert">
+                                    <h5>Condition: <span id="diseaseName"></span></h5>
+                                    <p class="mb-0">Confidence: <span id="confidence"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h5>Recommendations:</h5>
+                            <ul class="recommendation-list" id="recommendationList">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat Section -->
+                <div class="card mt-4 chat-section">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">Health Assistant</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="chatQuery" class="form-label">Ask a question about women's health:</label>
+                            <input type="text" class="form-control" id="chatQuery" placeholder="e.g., How can I manage period pain?">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button id="chatButton" class="btn btn-success">Ask</button>
+                        </div>
+                        <div class="mt-3 p-3 bg-light rounded" id="chatResponse" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Auto-calculate BMI
+            $('#weight, #height').change(function() {
+                const weight = $('#weight').val();
+                const height = $('#height').val() / 100; // convert cm to m
+                if (weight && height) {
+                    const bmi = (weight / (height * height)).toFixed(1);
+                    $('#bmi').val(bmi);
+                }
+            });
+            
+            // Form submission
+            $('#predictionForm').submit(function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    age: $('#age').val(),
+                    weight: $('#weight').val(),
+                    bmi: $('#bmi').val(),
+                    period_regularity: $('#period_regularity').val(),
+                    cycle_length: $('#cycle_length').val(),
+                    flow_intensity: $('#flow_intensity').val()
+                };
+                
+                $.ajax({
+                    url: '/predict',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        // Display results
+                        $('#healthRisk').text(response.health_risk);
+                        $('#diseaseName').text(response.disease_name);
+                        $('#confidence').text(response.confidence);
+                        
+                        // Set alert colors based on risk
+                        $('#riskAlert').removeClass().addClass('alert');
+                        if (response.health_risk === 'High Risk') {
+                            $('#riskAlert').addClass('alert-danger');
+                        } else if (response.health_risk === 'Moderate Risk') {
+                            $('#riskAlert').addClass('alert-warning');
+                        } else {
+                            $('#riskAlert').addClass('alert-success');
+                        }
+                        
+                        // Set disease alert
+                        $('#diseaseAlert').removeClass().addClass('alert');
+                        if (response.disease_detected) {
+                            $('#diseaseAlert').addClass('alert-danger');
+                        } else {
+                            $('#diseaseAlert').addClass('alert-success');
+                        }
+                        
+                        // Display recommendations
+                        $('#recommendationList').empty();
+                        response.recommendations.forEach(function(rec) {
+                            $('#recommendationList').append(`<li>${rec}</li>`);
+                        });
+                        
+                        // Show results
+                        $('#resultSection').show();
+                    },
+                    error: function(error) {
+                        alert('Error processing your request. Please try again.');
+                    }
+                });
+            });
+            
+            // Chat functionality
+            $('#chatButton').click(function() {
+                const query = $('#chatQuery').val();
+                if (query) {
+                    $.ajax({
+                        url: '/chatbot',
+                        type: 'POST',
+                        data: { query: query },
+                        success: function(response) {
+                            $('#chatResponse').html(response.response).show();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+"""
